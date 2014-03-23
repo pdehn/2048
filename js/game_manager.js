@@ -1,30 +1,3 @@
-var goal = 377;
-
-var canMerge = function (first, second) {
-  var min = Math.min(first, second);
-  var max = Math.max(first, second);
-  return (min == 1 && max == 2) || nextFibonacci(min) == max;
-};
-
-var fibonacci = (function () {
-  var memo = [1, 1];
-  return function (n) {
-    if (memo[n] != undefined) { return memo[n]; }
-    else {
-      return memo[n] = memo[n - 1] + memo[n - 2];
-    }
-  };
-})();
-
-var nextFibonacci = (function () {
-  var memo = {};
-  return function (n) {
-    if (memo[n] != undefined) { return memo[n]; }
-    var i;
-    for (i = 0; fibonacci(i) != n; i++) {};
-    return memo[n] = fibonacci(i + 1);
-  }
-})();
 
 function GameManager(size, InputManager, Actuator, ScoreManager) {
   this.size         = size; // Size of the grid
@@ -34,12 +7,44 @@ function GameManager(size, InputManager, Actuator, ScoreManager) {
 
   this.startTiles   = 1;
 
+  this.goalValue = 1597;
+
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
 
   this.setup();
 }
+
+GameManager.prototype.canMerge = function (first, second) {
+  var min = Math.min(first, second);
+  var max = Math.max(first, second);
+  return (min == 1 && max == 2) || this.nextFibonacci(min) == max;
+};
+
+GameManager.prototype.fibonacci = (function () {
+  var memo = [1, 1];
+  var f = function (n) {
+    if (memo[n] != undefined) {
+      return memo[n];
+    } else {
+      return memo[n] = f(n - 1) + f(n - 2);
+    }
+  };
+  return f;
+})();
+
+GameManager.prototype.nextFibonacci = (function () {
+  var memo = {};
+  return function (n) {
+    if (memo[n] != undefined) {
+      return memo[n];
+    }
+    var i;
+    for (i = 0; this.fibonacci(i) != n; i++) {};
+    return memo[n] = this.fibonacci(i + 1);
+  };
+})();
 
 // Restart the game
 GameManager.prototype.restart = function () {
@@ -154,7 +159,7 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && canMerge(next.value, tile.value) && !next.mergedFrom) {
+        if (next && self.canMerge(next.value, tile.value) && !next.mergedFrom) {
           var merged = new Tile(positions.next, tile.value + next.value);
           merged.mergedFrom = [tile, next];
 
@@ -168,7 +173,7 @@ GameManager.prototype.move = function (direction) {
           self.score += merged.value;
 
           // The mighty 2048 tile
-          if (merged.value === goal) self.won = true;
+          if (merged.value === self.goalValue) self.won = true;
         } else {
           self.moveTile(tile, positions.farthest);
         }
@@ -257,7 +262,7 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
           var other  = self.grid.cellContent(cell);
 
-          if (other && canMerge(other.value, tile.value)) {
+          if (other && self.canMerge(other.value, tile.value)) {
             return true; // These two tiles can be merged
           }
         }
